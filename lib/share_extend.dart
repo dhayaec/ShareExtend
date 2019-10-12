@@ -5,6 +5,7 @@
 /// A open source authorized by zhouteng [https://github.com/zhouteng0217/ShareExtend](https://github.com/zhouteng0217/ShareExtend).
 
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:ui';
 
@@ -35,5 +36,18 @@ class ShareExtend {
     }
 
     return _channel.invokeMethod('share', params);
+  }
+
+  static Future<void> shareMultiple({
+    @required List<String> filePaths,
+    String appId = "",
+  }) {
+    assert(filePaths.length != 0);
+
+    final Map<String, dynamic> params = <String, dynamic>{
+      'filePaths': filePaths,
+      'appId': appId
+    };
+    return _channel.invokeMethod('shareMultiple', params);
   }
 }

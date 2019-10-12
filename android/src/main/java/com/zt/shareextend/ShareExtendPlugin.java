@@ -4,13 +4,14 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.os.Build;
-
-import java.io.File;
-import java.util.Map;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Map;
+
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.PluginRegistry;
@@ -28,6 +29,8 @@ public class ShareExtendPlugin implements MethodChannel.MethodCallHandler, Plugi
     private final Registrar mRegistrar;
     private String text;
     private String type;
+    private ArrayList<String> filePaths;
+    private String appId;
 
     public static void registerWith(Registrar registrar) {
         MethodChannel channel = new MethodChannel(registrar.messenger(), CHANNEL);
@@ -49,6 +52,13 @@ public class ShareExtendPlugin implements MethodChannel.MethodCallHandler, Plugi
             }
             // Android does not support showing the share sheet at a particular point on screen.
             share((String) call.argument("text"), (String) call.argument("type"));
+            result.success(null);
+        } else if (call.method.equals("shareMultiple")) {
+            if (!(call.arguments instanceof Map)) {
+                throw new IllegalArgumentException("Map argument expected");
+            }
+            // Android does not support showing the share sheet at a particular point on screen.
+            shareMultiple((ArrayList<String>) call.argument("filePaths"), (String) call.argument("appId"));
             result.success(null);
         } else {
             result.notImplemented();
@@ -94,6 +104,43 @@ public class ShareExtendPlugin implements MethodChannel.MethodCallHandler, Plugi
         }
 
         Intent chooserIntent = Intent.createChooser(shareIntent, null /* dialog title optional */);
+        if (mRegistrar.activity() != null) {
+            mRegistrar.activity().startActivity(chooserIntent);
+        } else {
+            chooserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            mRegistrar.context().startActivity(chooserIntent);
+        }
+    }
+
+    private void shareMultiple(ArrayList<String> filePaths, String appId) {
+        if (filePaths.size() == 0) {
+            throw new IllegalArgumentException("Non-empty filePaths expected");
+        }
+        this.filePaths = filePaths;
+        this.appId = appId;
+
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_SEND_MULTIPLE);
+        intent.putExtra(Intent.EXTRA_SUBJECT, "Splitted videos.");
+        intent.setType("video/*");
+        if (!appId.isEmpty()) {
+            intent.setPackage(appId);
+        }
+
+
+        ArrayList<Uri> files = new ArrayList<>();
+
+        for (String path : filePaths /* List of the files you want to send */) {
+            File file = new File(path);
+            Uri uri = ShareUtils.getUriForFile(mRegistrar.activity(), file, "video/*");
+            files.add(uri);
+        }
+
+        intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, files);
+
+
+        Intent chooserIntent = Intent.createChooser(intent, "Set as WhatsApp status" /* dialog title optional */);
+
         if (mRegistrar.activity() != null) {
             mRegistrar.activity().startActivity(chooserIntent);
         } else {

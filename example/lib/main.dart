@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:io';
 
 import 'package:share_extend/share_extend.dart';
@@ -16,6 +17,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    _copyAssets();
   }
 
   @override
@@ -57,12 +59,31 @@ class _MyAppState extends State<MyApp> {
                   },
                   child: new Text("share file"),
                 ),
+                RaisedButton(
+                  onPressed: () {
+                    _shareMultiple();
+                  },
+                  child: Text('Share Multiple'),
+                )
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  _copyAssets() async {
+    final Directory d = await getApplicationDocumentsDirectory();
+    rootBundle.load('assets/videos/s.mp4').then((content) {
+      File newFile = File('${d.path}/s.mp4');
+      newFile.writeAsBytesSync(content.buffer.asUint8List());
+    });
+
+    rootBundle.load('assets/videos/s1.mp4').then((content) {
+      File newFile = File('${d.path}/s1.mp4');
+      newFile.writeAsBytesSync(content.buffer.asUint8List());
+    });
   }
 
   ///share the documents file
@@ -74,5 +95,12 @@ class _MyAppState extends State<MyApp> {
       testFile.writeAsStringSync("test for share documents file");
     }
     ShareExtend.share(testFile.path, "file");
+  }
+
+  _shareMultiple() async {
+    Directory dir = await getApplicationDocumentsDirectory();
+    File f1 = new File("${dir.path}/s1.mp4");
+    File f2 = new File("${dir.path}/s.mp4");
+    ShareExtend.shareMultiple(filePaths: [f1.path, f2.path]);
   }
 }
